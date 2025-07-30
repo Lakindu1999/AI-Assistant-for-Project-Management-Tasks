@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asana Projects</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
+
+    <div class="bg-white text-center text-xl font-bold px-8 py-4 rounded-2xl shadow-lg mb-8">
+        Select a Project
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg">
+        <ul id="projectList" class="space-y-4"></ul>
+    </div>
+
+    <script>
+        async function loadProjects() {
+            try {
+                const response = await fetch('http://localhost:5678/webhook-test/get-projects');
+                const projects = await response.json();
+                
+                const listContainer = document.getElementById("projectList");
+                listContainer.innerHTML = "";
+                
+                projects.forEach(project => {
+                    let listItem = document.createElement("li");
+                    listItem.className = "flex justify-between items-center bg-blue-100 p-4 rounded-xl shadow-md hover:bg-blue-200 cursor-pointer transition";
+                    
+                    let projectName = document.createElement("span");
+                    projectName.textContent = project.name;
+                    
+                    listItem.appendChild(projectName);
+                    listItem.onclick = () => selectProject(project.gid);
+                    
+                    listContainer.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error("Error loading projects:", error);
+                alert("Failed to load projects.");
+            }
+        }
+
+        function selectProject(projectId) {
+            window.location.href = `task03-project-summary-test.html?projectId=${encodeURIComponent(projectId)}`;
+        }
+
+        window.onload = loadProjects;
+    </script>
+</body>
+</html>

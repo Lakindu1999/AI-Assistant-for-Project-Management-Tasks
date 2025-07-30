@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Select Transcript</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
+
+  <div class="bg-white text-center text-xl font-bold px-8 py-4 rounded-2xl shadow-lg mb-8">
+    Select a Transcript
+  </div>
+
+  <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg">
+    <ul id="transcriptList" class="space-y-4"></ul>
+  </div>
+
+  <!-- Response Container -->
+  <div id="responseContainer" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg mt-6">
+    <h3 class="text-lg font-bold mb-2">Summary:</h3>
+    <p id="summaryText" class="text-gray-700 whitespace-pre-line"></p>
+    <a id="downloadSummary" href="#" download class="hidden mt-4 inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Download Summary</a>
+  </div>
+
+  <!-- Chat Interface -->
+  <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg mt-6">
+    <h3 class="text-lg font-bold mb-2">Chat with AI</h3>
+    <div id="chatBox" class="h-48 p-3 border rounded-lg overflow-y-auto bg-gray-100"></div>
+    <div class="mt-3 flex">
+      <input type="text" id="chatInput" class="flex-1 p-2 border rounded-lg" placeholder="Ask something or say 'update the summary'...">
+      <button onclick="sendMessage()" class="ml-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Send</button>
+    </div>
+    <p class="text-sm text-gray-500 mt-2">💡 Ask or update the summary. The AI will decide if your message should become the new summary.</p>
+  </div>
+
+  <!-- Home Button -->
+  <div class="mt-6">
+    <button onclick="goHome()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+      Go to Home
+    </button>
+  </div>
+
+  <script>
+    localStorage.removeItem("sessionId");
+    const sessionId = `session_${Date.now()}`;
+
+    async function loadTranscripts() {
+      try {
+        const response = await fetch('http://localhost:5678/webhook/load-transcript');
+        const files = await response.json();
+        const listContainer = document.getElementById("transcriptList");
+        listContainer.innerHTML = "";
+
+        files.forEach(file => {
+          let listItem = document.createElement("li");
+          listItem.className = "flex justify-between items-center bg-blue-100 p-4 rounded-xl shadow-md hover:bg-blue-200 cursor-pointer transition";
+
+          let fileName = document.createElement("span");
+          fileName.textContent = file.name;
+
+          let downloadButton = document.createElement("button");
+          downloadButton.textContent = "Summarize";
+          downloadButton.className = "bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition";
+          downloadButton.onclick = () => confirmDownload(file.id, file.name, downloadButton);
+
+          listItem.appendChild(fileName);
+          listItem.appendChild(downloadButton);
+          listContainer.appendChild(listItem);
+        });
+      } catch (error) {
+        console.error("Error loading transcripts:", error);
+        alert("Failed to load transcripts.");
+      }
+    }
+
+    async function confirmDownload(fileId, fileName, button) {
+      if (confirm(`Do you want to summarize "${fileName}"?`)) {
+        button.disabled = true;
+        downloadFile(fileId, fileName);
+      }
+    }
+
+    async function downloadFile(fileId, fileName) {
+      try {
+        const response = await fetch('http://localhost:5678/webhook/display-summary', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId, session_id: sessionId })
+        });
+
+        const jsonResponse = await response.json();
+        const summary = Array.isArray(jsonResponse) && jsonResponse[0]?.output.output
+          ? jsonResponse[0].output.output
+          : jsonResponse.output.output || JSON.stringify(jsonResponse);
+
+        updateSummaryBox(summary);
+      } catch (error) {
+        console.error("Error downloading transcript:", error);
+        alert("Error processing the summary.");
+      }
+    }
+
+    async function sendMessage() {
+      const inputField = document.getElementById("chatInput");
+      const chatBox = document.getElementById("chatBox");
+      const userMessage = inputField.value.trim();
+      if (!userMessage) return;
+
+      chatBox.innerHTML += `<div class="text-right text-blue-600 mb-2"><strong>You:</strong> ${userMessage}</div>`;
+      inputField.value = "";
+
+      try {
+        const response = await fetch('http://localhost:5678/webhook/d1017c18-47b6-46b8-b490-1c8a463d647a/chat', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage, session_id: sessionId })
+        });
+
+        const result = await response.json();
+        let aiOutput = "";
+        let shouldUpdate = false;
+
+        if (typeof result === "object") {
+          aiOutput = result.output.output || "";
+          shouldUpdate = result.output.update_summary === true;
+        } else if (typeof result === "string") {
+          const parsed = JSON.parse(result);
+          aiOutput = parsed.output.output || result;
+          shouldUpdate = parsed.output.update_summary === true;
+        }
+
+        chatBox.innerHTML += `<div class="text-left text-gray-800 mb-2"><strong>AI:</strong> ${aiOutput}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        if (shouldUpdate && aiOutput.trim()) {
+          updateSummaryBox(aiOutput);
+        }
+      } catch (error) {
+        console.error("Chat error:", error);
+        chatBox.innerHTML += `<div class="text-left text-red-600 mb-2"><strong>AI:</strong> Error occurred.</div>`;
+      }
+    }
+
+    function updateSummaryBox(content) {
+      const summaryText = document.getElementById("summaryText");
+      const downloadLink = document.getElementById("downloadSummary");
+
+      summaryText.textContent = content;
+      const blob = new Blob([content], { type: "text/plain" });
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.download = `updated_summary.txt`;
+
+      document.getElementById("responseContainer").classList.remove("hidden");
+      downloadLink.classList.remove("hidden");
+    }
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+
+    window.onload = loadTranscripts;
+  </script>
+</body>
+</html>

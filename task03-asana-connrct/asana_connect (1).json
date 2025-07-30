@@ -1,0 +1,691 @@
+{
+  "name": "asana_connect",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "project",
+        "operation": "getAll",
+        "workspace": "1209759874412799",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        -320
+      ],
+      "id": "9e461a32-1e01-4687-b18b-dfc9db3f7b95",
+      "name": "Asana",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "filters": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "due_on",
+            "assignee",
+            "completed"
+          ],
+          "project": "={{ $json.body.query.projectId }}"
+        }
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        -80
+      ],
+      "id": "283daabe-89dc-4e33-9164-38c6b7aaa279",
+      "name": "Asana1",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "subtask",
+        "operation": "getAll",
+        "taskId": "={{ $json.gid }}",
+        "options": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "completed",
+            "due_on",
+            "parent",
+            "assignee"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        120,
+        20
+      ],
+      "id": "afbdefe4-e42e-4b62-805e-7539094f7af5",
+      "name": "Asana2",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "get-projects",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        -320
+      ],
+      "id": "606fe845-e816-4530-b8ec-2e2c961bc02c",
+      "name": "Webhook",
+      "webhookId": "5b27666a-32a7-4e3e-b608-4822f14a40f4"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        -320
+      ],
+      "id": "2162204f-9567-4e99-9722-0380027d18bd",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "display-project",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        -80
+      ],
+      "id": "f6e2c3d3-338e-497a-9f4c-318c7076a38d",
+      "name": "Webhook1",
+      "webhookId": "eaa41b93-83f2-43e2-8ddb-4c2063f6de99"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        740,
+        20
+      ],
+      "id": "6ba07eeb-c71a-4131-aa83-cd1b244f4e3a",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO",
+            "mode": "list",
+            "cachedResultName": "Meeting-transcripts",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -140,
+        160
+      ],
+      "id": "a5e0ae11-5304-464a-9cd6-9e114d2636bc",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "EkHmdaGQ4cf4w7fy",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        360,
+        20
+      ],
+      "id": "70c985e0-99d1-4051-8cad-e7e0ef27c5b1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        540,
+        20
+      ],
+      "id": "349ff087-8037-4a8a-a52e-4a230bc2c59f",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze-transcript",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        420
+      ],
+      "id": "6d92100a-d239-4aa6-bd35-6c5731d3df97",
+      "name": "Webhook2",
+      "webhookId": "07b49314-1832-41fa-98d1-5ef69a00bc2a"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.body.transcriptId }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf",
+              "drawingsToFormat": "application/pdf",
+              "slidesToFormat": "application/pdf",
+              "sheetsToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -120,
+        620
+      ],
+      "id": "20d9e3fc-356b-4e37-9440-261f7a20bc4a",
+      "name": "Google Drive1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "EkHmdaGQ4cf4w7fy",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        80,
+        620
+      ],
+      "id": "da3f0cd5-6489-4dc6-88fd-a7c502a5f648",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "filters": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "due_on",
+            "assignee",
+            "completed"
+          ],
+          "project": "={{ $json.body.projectId }}"
+        }
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        420
+      ],
+      "id": "2d659862-16dc-4992-a594-84b70c2fa559",
+      "name": "Asana3",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "subtask",
+        "operation": "getAll",
+        "taskId": "={{ $json.gid }}",
+        "options": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "completed",
+            "due_on",
+            "parent",
+            "assignee"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        20,
+        480
+      ],
+      "id": "ca64bfff-ab6b-4d0a-9e0d-6eef87859d24",
+      "name": "Asana4",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        260,
+        440
+      ],
+      "id": "5c27d012-b508-4c0e-a587-9e2f65917b5a",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=%meeting_transcript% = {{ $('Extract from File').item.json.text }}\n\nAsana exsisting tasks id(gid) -> {{ $('Asana3').all().map(item => item.json.gid) }}\n\n%Asana_exsisting_subtasks_id(gid)% -> {{ $('Asana4').all().map(item => item.json.gid) }} and its parent tasks accordingly {{ $('Asana4').all().map(item => item.json.parent.gid) }}\n\nYou are an assistant that reads %meeting_transcript% and updates project tasks for Asana.\n\n1. Review the list of existing tasks and subtasks.\n2. Propose changes to any tasks or subtasks if applicable.\n3. If new tasks are required, create new tasks after exsisiting tasks.\n4. If new subtasks are required, include them under the correct parent task.\n5. If a task or subtask is changed or new, include \"changed\" = true, otherwise \"changed\" = false.\n6. Subtasks should be embedded under the \"subtasks\" array of their parent task. (please apply this step for %Asana_exsisting_subtasks_id(gid)%)\n7. Each task/subtask must include: gid(if it exsisting task or subtask), name, assignee, due_on, status(by defualt \"pending\"), and changed.\n\n\nOutput: the result **only** as structured JSON. No explanation or extra text.\n❗️Always respond with only raw JSON data. Do not include explanations, tags like <think>, or code fences like ```json\n",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        640,
+        440
+      ],
+      "id": "55fee664-d980-4bda-8075-316207fad1d3",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        600,
+        820
+      ],
+      "id": "13c4c05f-38a2-4a0a-ba5a-3eaba665a4a5",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "7CIt42W14b1MCgxQ",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        440
+      ],
+      "id": "81765340-5517-4693-94c5-1bd81b054555",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        460,
+        440
+      ],
+      "id": "34a87e83-6245-4d8b-a248-4ba1c182a4f4",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        780,
+        660
+      ],
+      "id": "c575acab-7cd0-412f-9c9d-d34cd98f21eb",
+      "name": "Auto-fixing Output Parser1"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Asana Task Update Schema\",\n  \"type\": \"array\",\n  \"items\": {\n    \"$ref\": \"#/definitions/task\"\n  },\n  \"definitions\": {\n    \"task\": {\n      \"type\": \"object\",\n      \"required\": [\"type\", \"gid\", \"name\", \"assignee\", \"due_on\", \"status\", \"changed\", \"subtasks\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"enum\": [\"task\"]\n        },\n        \"gid\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ],\n          \"description\": \"Existing task ID, or null if new\"\n        },\n        \"name\": {\n          \"type\": \"string\"\n        },\n        \"assignee\": {\n          \"type\": \"string\"\n        },\n        \"due_on\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"format\": \"date\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"enum\": [\"Pending\", \"In Progress\", \"Completed\"]\n        },\n        \"changed\": {\n          \"type\": \"boolean\"\n        },\n        \"subtasks\": {\n          \"type\": \"array\",\n          \"items\": { \"$ref\": \"#/definitions/subtask\" },\n          \"default\": []\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"subtask\": {\n      \"type\": \"object\",\n      \"required\": [\"type\", \"gid\", \"name\", \"assignee\", \"due_on\", \"status\", \"changed\"],\n      \"properties\": {\n        \"type\": {\n          \"type\": \"string\",\n          \"enum\": [\"subtask\"]\n        },\n        \"gid\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ],\n          \"description\": \"Existing subtask ID, or null if new\"\n        },\n        \"name\": {\n          \"type\": \"string\"\n        },\n        \"assignee\": {\n          \"type\": \"string\"\n        },\n        \"due_on\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"format\": \"date\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"enum\": [\"Pending\", \"In Progress\", \"Completed\", \"\"]\n        },\n        \"changed\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  }\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        880
+      ],
+      "id": "c9db9c13-86a7-4a52-b43d-62693abbc4c3",
+      "name": "Structured Output Parser1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Asana": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana1": {
+      "main": [
+        [
+          {
+            "node": "Asana2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Asana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Asana1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Google Drive1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Asana3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana3": {
+      "main": [
+        [
+          {
+            "node": "Asana4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Asana4": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1b1e05fc-dd1a-4967-9aa0-d481098db590",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "o0erYQUFMSez8Ag3",
+  "tags": []
+}

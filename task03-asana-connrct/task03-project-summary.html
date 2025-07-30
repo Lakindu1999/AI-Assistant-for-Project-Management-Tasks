@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Summary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
+        <h1 class="text-2xl font-bold mb-4">Project Summary</h1>
+        <table class="w-full border-collapse border border-gray-300">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="border p-2">Task Name</th>
+                    <th class="border p-2">Assignee</th>
+                    <th class="border p-2">Due Date</th>
+                    <th class="border p-2">Status</th>
+                </tr>
+            </thead>
+            <tbody id="taskList"></tbody>
+        </table>
+
+        <h2 class="text-xl font-semibold mt-6">Meeting Transcripts</h2>
+        <ul id="transcriptList" class="space-y-2 mt-2"></ul>
+
+        <div id="editFormContainer" class="hidden mt-6">
+            <h2 class="text-xl font-semibold">Edit Project Tasks</h2>
+            <form id="editForm" class="space-y-4">
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">Task Name</th>
+                            <th class="border p-2">Assignee</th>
+                            <th class="border p-2">Due Date</th>
+                            <th class="border p-2">Status</th>
+                            <th class="border p-2">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="editTaskList"></tbody>
+                </table>
+                <button type="submit" class="mt-4 bg-blue-500 text-white p-2 rounded">Submit Changes</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        async function loadProjectSummary() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const projectId = urlParams.get('projectId');
+                if (!projectId) throw new Error("No project ID specified");
+
+                const response = await fetch('http://localhost:5678/webhook-test/display-project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: { projectId: projectId } })
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                const tasks = data[0].data;
+                const taskList = document.getElementById("taskList");
+                const transcriptList = document.getElementById("transcriptList");
+                taskList.innerHTML = "";
+                transcriptList.innerHTML = "";
+
+                const taskMap = {};
+                tasks.forEach(task => {
+                    if (task.resource_type === "task") {
+                        if (task.parent) {
+                            if (!taskMap[task.parent.gid]) taskMap[task.parent.gid] = { subtasks: [] };
+                            taskMap[task.parent.gid].subtasks.push(task);
+                        } else {
+                            taskMap[task.gid] = { ...task, subtasks: [] };
+                        }
+                    } else if (task.id) {
+                        let listItem = document.createElement("li");
+                        listItem.textContent = task.name;
+                        listItem.className = "bg-blue-100 p-2 rounded-lg shadow hover:bg-blue-200 cursor-pointer";
+                        listItem.onclick = () => loadEditForm(projectId, task.id);
+                        transcriptList.appendChild(listItem);
+                    }
+                });
+
+                Object.values(taskMap).forEach(task => {
+                    let row = document.createElement("tr");
+                    row.className = task.completed ? "bg-green-100" : "";
+                    row.innerHTML = `
+                        <td class="border p-2 font-semibold">${task.name}</td>
+                        <td class="border p-2">${task.assignee?.gid || "Unassigned"}</td>
+                        <td class="border p-2">${task.due_on || "N/A"}</td>
+                        <td class="border p-2">${task.completed ? "Completed" : "Pending"}</td>
+                    `;
+                    taskList.appendChild(row);
+
+                    task.subtasks.forEach(subtask => {
+                        let subRow = document.createElement("tr");
+                        subRow.className = "bg-gray-50";
+                        subRow.innerHTML = `
+                            <td class="border p-2 pl-6">↳ ${subtask.name}</td>
+                            <td class="border p-2">${subtask.assignee?.gid || "Unassigned"}</td>
+                            <td class="border p-2">${subtask.due_on || "N/A"}</td>
+                            <td class="border p-2">${subtask.completed ? "Completed" : "Pending"}</td>
+                        `;
+                        taskList.appendChild(subRow);
+                    });
+                });
+            } catch (error) {
+                console.error("Error loading project summary:", error);
+                alert("Failed to load project summary.");
+            }
+        }
+
+        async function loadEditForm(projectId, transcriptId) {
+            document.getElementById("transcriptList").classList.add("hidden");
+            document.getElementById("editFormContainer").classList.remove("hidden");
+
+            const response = await fetch('http://localhost:5678/webhook-test/analyze-transcript', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcriptId, projectId })
+            });
+            const aiData = await response.json();
+            populateEditForm(aiData);
+        }
+
+        function populateEditForm(aiData) {
+            const editTaskList = document.getElementById("editTaskList");
+            editTaskList.innerHTML = "";
+
+            aiData.forEach(task => {
+                let taskRow = document.createElement("tr");
+                taskRow.className = task.changed && task.id === null ? "bg-green-100" : task.changed ? "bg-yellow-100" : "";
+                taskRow.innerHTML = `
+                    <td class="border p-2"><input type="text" value="${task.name}" class="w-full"></td>
+                    <td class="border p-2"><input type="text" value="${task.assignee}" class="w-full"></td>
+                    <td class="border p-2"><input type="date" value="${task.due_on}" class="w-full"></td>
+                    <td class="border p-2">
+                        <select class="w-full">
+                            <option ${task.completed ? "selected" : ""}>Completed</option>
+                            <option ${!task.completed ? "selected" : ""}>Pending</option>
+                        </select>
+                    </td>
+                    <td class="border p-2"><button onclick="this.parentNode.parentNode.remove()" class="bg-red-500 text-white p-1 rounded">Delete</button></td>
+                `;
+                editTaskList.appendChild(taskRow);
+
+                if (task.subtasks) {
+                    task.subtasks.forEach(subtask => {
+                        let subtaskRow = document.createElement("tr");
+                        subtaskRow.className = subtask.changed && subtask.id === null ? "bg-green-100" : subtask.changed ? "bg-yellow-100" : "bg-gray-50";
+                        subtaskRow.innerHTML = `
+                            <td class="border p-2 pl-6"><input type="text" value="${subtask.name}" class="w-full"></td>
+                            <td class="border p-2"><input type="text" value="${subtask.assignee}" class="w-full"></td>
+                            <td class="border p-2"><input type="date" value="${subtask.due_on}" class="w-full"></td>
+                            <td class="border p-2">
+                                <select class="w-full">
+                                    <option ${subtask.completed ? "selected" : ""}>Completed</option>
+                                    <option ${!subtask.completed ? "selected" : ""}>Pending</option>
+                                </select>
+                            </td>
+                            <td class="border p-2"><button onclick="this.parentNode.parentNode.remove()" class="bg-red-500 text-white p-1 rounded">Delete</button></td>
+                        `;
+                        editTaskList.appendChild(subtaskRow);
+                    });
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", loadProjectSummary);
+    </script>
+</body>
+</html>

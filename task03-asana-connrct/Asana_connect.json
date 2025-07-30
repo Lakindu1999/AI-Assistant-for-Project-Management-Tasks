@@ -1,0 +1,373 @@
+{
+  "name": "Asana-connect",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "project",
+        "operation": "getAll",
+        "workspace": "1209759874412799",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        -380
+      ],
+      "id": "0ecb036a-42ab-412b-882b-72ef5598e303",
+      "name": "Asana",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "k7uM3Phzo8Oiil2m",
+          "name": "di-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "filters": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "due_on",
+            "assignee",
+            "completed"
+          ],
+          "project": "={{ $json.body.query.projectId }}"
+        }
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        -140
+      ],
+      "id": "a1261867-1049-4d64-901b-ea68844477db",
+      "name": "Asana1",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "k7uM3Phzo8Oiil2m",
+          "name": "di-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "subtask",
+        "operation": "getAll",
+        "taskId": "={{ $json.gid }}",
+        "options": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "completed",
+            "due_on",
+            "parent",
+            "assignee"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        -40
+      ],
+      "id": "c9fe1bbc-2ad6-47b5-8b97-eedf86462bbe",
+      "name": "Asana2",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "k7uM3Phzo8Oiil2m",
+          "name": "di-ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "get-projects",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        -380
+      ],
+      "id": "08c7a44d-1e9e-47c1-af1d-2e0318ab8d6d",
+      "name": "Webhook",
+      "webhookId": "5b27666a-32a7-4e3e-b608-4822f14a40f4"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        -380
+      ],
+      "id": "2e5a6e26-8f23-4a55-b836-f9d508931e99",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "display-project",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        -140
+      ],
+      "id": "a89a7cfe-b389-4007-8447-1972476b965e",
+      "name": "Webhook1",
+      "webhookId": "eaa41b93-83f2-43e2-8ddb-4c2063f6de99"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        340,
+        -40
+      ],
+      "id": "13e8528f-cb71-466e-bad9-fec8062436d7",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO",
+            "mode": "list",
+            "cachedResultName": "Meeting-transcripts",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -540,
+        100
+      ],
+      "id": "59561074-64ca-4611-8f00-bd14a63ff870",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "SUFd5I29FYSRnvmn",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -40,
+        -40
+      ],
+      "id": "9e92c7c7-ada4-4cdf-8e65-e4b88f661759",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -40
+      ],
+      "id": "a29c7357-01e0-4afc-a7ce-4cf34b0b7562",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "select-transcript-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        360
+      ],
+      "id": "afc331b4-3ad8-42e3-9a53-e86a14e46191",
+      "name": "Webhook2",
+      "webhookId": "07b49314-1832-41fa-98d1-5ef69a00bc2a"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -540,
+        360
+      ],
+      "id": "e82e113b-395e-4a6b-b2b5-d40757e2718f",
+      "name": "Google Drive1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "SUFd5I29FYSRnvmn",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Asana": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana1": {
+      "main": [
+        [
+          {
+            "node": "Asana2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Asana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Asana1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Google Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "045f015b-bf9e-451c-8eae-023e042cc0ac",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "HBLfiHvsiEo4fsw3",
+  "tags": []
+}

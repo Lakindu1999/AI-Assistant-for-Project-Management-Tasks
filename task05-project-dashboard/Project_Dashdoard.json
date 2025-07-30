@@ -1,0 +1,364 @@
+{
+  "name": "Project-Dashdoard",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following project and task data from Asana. For each project, generate a JSON object with the following fields:\n\nTo gent the information about Tasks : use  Asana-get-task tool\n\nproject_id: {{ $json.gid }}\n\nproject_name: {{ $json.name }}\n\ncompleteness_percent: Percentage of completed tasks = (completed_tasks//entire_tasks)*100.\n\ndue_date: The official project due date. If not available, choose the latest task due date.\n\ntasks_percentage: Percentage distribution of tasks across statuses – in_progress, pending, and completed.\n\nnotifications: An array of important action items or deadlines that need attention in the next 4 to 5 days.\n\n\nIdentify time-sensitive tasks based on due dates within the next 5 days and flag them under notifications(task_id, task_name, due_date).\n\nReturn your output as *raw JSON only*. Do not include code block syntax like ```json. \nEnsure all numbers (like percentages) are numbers, not strings. The format should exactly match this schema:\n{ ...schema preview... }\n\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        180,
+        -260
+      ],
+      "id": "421a465c-5207-4b4d-8790-f8030e5be616",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        100,
+        200
+      ],
+      "id": "636a805a-9e8e-4ccd-8007-46061e09326a",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "7CIt42W14b1MCgxQ",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "filters": {
+          "opt_fields": [
+            "gid",
+            "name",
+            "resource_type",
+            "completed",
+            "due_on"
+          ],
+          "project": "={{ $json.gid }}"
+        }
+      },
+      "type": "n8n-nodes-base.asanaTool",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "62f72033-219c-4e97-b0b4-d688cf8fd59b",
+      "name": "Asana-get-task",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "project",
+        "operation": "getAll",
+        "workspace": "1209759874412799",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        -280
+      ],
+      "id": "5cd56ed9-2221-47d7-8355-54f7418a4018",
+      "name": "Asana",
+      "credentials": {
+        "asanaOAuth2Api": {
+          "id": "GZf5W2INjYCCXQg5",
+          "name": "Asana account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -20
+      ],
+      "id": "2f498211-e28d-469c-90bb-ec9ee3cee616",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"ProjectActionResponse\",\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\"action\", \"response\"],\n    \"properties\": {\n      \"action\": {\n        \"type\": \"string\",\n        \"enum\": [\"parse\"]\n      },\n      \"response\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"project_id\",\n          \"project_name\",\n          \"completeness_percent\",\n          \"due_date\",\n          \"tasks_percentage\",\n          \"notifications\"\n        ],\n        \"properties\": {\n          \"project_id\": {\n            \"type\": \"number\",\n            \"description\": \"Unique ID of the project\"\n          },\n          \"project_name\": {\n            \"type\": \"string\",\n            \"description\": \"Name of the project\"\n          },\n          \"completeness_percent\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 100\n          },\n          \"due_date\": {\n            \"type\": \"string\",\n            \"format\": \"date\"\n          },\n          \"tasks_percentage\": {\n            \"type\": \"object\",\n            \"required\": [\"in_progress\", \"pending\", \"completed\"],\n            \"properties\": {\n              \"in_progress\": {\n                \"type\": \"number\",\n                \"minimum\": 0,\n                \"maximum\": 100\n              },\n              \"pending\": {\n                \"type\": \"number\",\n                \"minimum\": 0,\n                \"maximum\": 100\n              },\n              \"completed\": {\n                \"type\": \"number\",\n                \"minimum\": 0,\n                \"maximum\": 100\n              }\n            }\n          },\n          \"notifications\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"required\": [\"task_id\", \"task_name\", \"due_date\"],\n              \"properties\": {\n                \"task_id\": {\n                  \"type\": \"string\"\n                },\n                \"task_name\": {\n                  \"type\": \"string\"\n                },\n                \"due_date\": {\n                  \"type\": \"string\",\n                  \"format\": \"date\"\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        220
+      ],
+      "id": "91e17634-124e-449c-8fdd-f933b58e9574",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -80,
+        -280
+      ],
+      "id": "36cb01dc-198f-4f19-bf07-2a37b2673fa2",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        280,
+        -420
+      ],
+      "id": "fdcf9f75-c2b8-4714-8f46-5ef1966dad65",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a dynamic HTML dashboard page.\n\nBackground: Dark blue color (bg-blue-950).\n\nHeader: Title \"Project Dashboard\" and a subtext \"Stay on top of your projects with real-time updates.\"\n\nLayout: Two main sections:\n\nLeft: Project cards grid.\n\nRight: Notification panel.\n\nEach project card must include:\n\nProject name.\n\nA circular SVG progress bar showing project completeness (animated if possible).\n\nTask breakdown percentages (in-progress, pending, completed).\n\nDue date.\n\nNotifications:\n\nShow task name.\n\nShow due date.\n\nShow the associated project name under each notification.\n\nUse similar dark blue shades for styling.\n\nLoading screen:\n\nOverlay with animated spinner.\n\nMessage: \"Fetching project updates...\"\n\nBackground slightly darker than main page.\n\nCode must use TailwindCSS CDN. No external frameworks needed.\n\nJavaScript section should dynamically fetch data from an API (http://localhost:5678/webhook-test/project-dashboard) and render the projects and notifications.\n\nKeep the code clean, responsive, and visually modern. Use flexbox/grid properly.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a professional UI developer specialized in clean HTML/CSS/JavaScript code. Based on the provided UI design description, generate a full .html page using TailwindCSS and Vanilla JavaScript.\n\nStart your response directly with <!DOCTYPE html> and end at </html>.\n\nDo not include any comments, explanations, greetings, summaries, or extra text outside the HTML code.\n\nMatch the background color, layout structure, project cards, progress circles, and notification styles exactly as described.\n\nImplement a loading screen text \"Stay on top of your projects with real-time updates.\" that disappears when data is loaded.\n\nMake sure project cards show dynamic project data with completeness percent.\n\nIn the notification panel, display each notification's task name, due date, and the related project name.\n\nUse beautiful, modern formatting and follow TailwindCSS best practices.\n\n"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        1160,
+        -600
+      ],
+      "id": "3e915592-09a2-4ba0-b7c2-f28a103968aa",
+      "name": "Basic LLM Chain",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -400
+      ],
+      "id": "e798d1b2-f864-43d5-8eb8-60e9ecaa923a",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "7CIt42W14b1MCgxQ",
+          "name": "Ollama account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "path": "project-dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        -280
+      ],
+      "id": "938fc31b-532e-4775-8d99-7f294061da34",
+      "name": "Webhook",
+      "webhookId": "5f6e743d-1cd4-4f0c-aa90-4422b8647408"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        -420
+      ],
+      "id": "3b8a2e7f-ff4b-4716-8b33-572f13701282",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana-get-task": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Asana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b7d592f0-a93d-4764-8d70-62454a2d1637",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "uiGpWIwEOWbEEi05",
+  "tags": []
+}

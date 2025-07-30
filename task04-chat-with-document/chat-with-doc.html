@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RAG Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3b82f6',
+            bgGradientStart: '#4f46e5',
+            bgGradientEnd: '#3b82f6',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-bgGradientStart to-bgGradientEnd flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-lg max-w-xl w-full p-6 space-y-4">
+    <h2 class="text-lg font-semibold">Chat with AI</h2>
+
+    <div id="chatBox" class="h-60 bg-gray-100 rounded p-3 overflow-y-auto text-sm"></div>
+
+    <form id="chatForm" class="flex items-center gap-2">
+      <label for="fileInput" class="cursor-pointer text-gray-500 hover:text-primary">
+        📎
+        <input type="file" id="fileInput" name="file" class="hidden">
+      </label>
+      <input type="text" id="message" placeholder="Ask something..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm" required>
+      <button type="submit" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">Send</button>
+    </form>
+  </div>
+
+  <script>
+    // Generate or retrieve sessionId
+    //let sessionId = localStorage.getItem('sessionId');
+    //if (!sessionId) {
+    //  sessionId = 'sess-' + Math.random().toString(36).substring(2, 10);
+    //  localStorage.setItem('sessionId', sessionId);
+    //}
+    const sessionId = 'sess-' + Math.random().toString(36).substring(2, 10);
+
+    const form = document.getElementById('chatForm');
+    const messageInput = document.getElementById('message');
+    const fileInput = document.getElementById('fileInput');
+    const chatBox = document.getElementById('chatBox');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      appendMessage("You", message);
+      messageInput.value = "";
+
+      const formData = new FormData();
+      formData.append('message', message);
+      formData.append('sessionId', sessionId);
+      if (fileInput.files.length > 0) {
+        formData.append('file', fileInput.files[0]);
+      }
+
+      try {
+        const res = await fetch('http://localhost:5678/webhook-test/rag-chat', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        const aiReply = Array.isArray(data) && data[0]?.output ? data[0].output : "No response received.";
+	appendMessage("AI", aiReply);
+      } catch (err) {
+        appendMessage("AI", "⚠️ Error contacting AI agent.");
+        console.error(err);
+      }
+    });
+
+    function appendMessage(sender, text) {
+      const div = document.createElement('div');
+      div.classList.add("mb-2");
+      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
+</body>
+</html>

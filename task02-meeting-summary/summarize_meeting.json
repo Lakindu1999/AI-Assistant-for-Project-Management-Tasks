@@ -1,0 +1,508 @@
+{
+  "name": "summarize_meeting",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "load-transcript",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        -300
+      ],
+      "id": "34776921-2e9f-46ff-8d9f-c22c2fc2f38b",
+      "name": "Webhook",
+      "webhookId": "db2a6078-21a8-498f-8348-4563a0558019"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO",
+            "mode": "list",
+            "cachedResultName": "Meeting-transcripts",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        80,
+        -300
+      ],
+      "id": "e36c4eb6-b4b5-4d64-894a-d49e8c6108ee",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "EkHmdaGQ4cf4w7fy",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        -300
+      ],
+      "id": "dea26474-d605-4a03-bf77-9a2aa44efd79",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "display-summary",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        -40
+      ],
+      "id": "b8c2f592-2c25-42ce-b81a-847ccee4bc38",
+      "name": "Webhook1",
+      "webhookId": "db2a6078-21a8-498f-8348-4563a0558019"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        80
+      ],
+      "id": "d8e24824-6032-4fdb-bb0e-b33aa75cfbbf",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.body.fileId }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf",
+              "slidesToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        60,
+        -40
+      ],
+      "id": "5b688247-8c3c-4535-91c3-196e280d2db7",
+      "name": "Google Drive1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "EkHmdaGQ4cf4w7fy",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        280,
+        -40
+      ],
+      "id": "1a380407-5deb-49b6-919c-ead8916bd2a4",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Meeting Transcript: {{ $json.text }} || AI Chat: {{ $json.message }}\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a meeting assistant that summarizes and edits meeting transcripts.\n\nYour response must always follow this exact format (JSON only, no extra text):\n\n{\n  \"update_summary\": true or false,\n  \"output\": \"summary content or chat reply\"\n}\n\n✅ If the user requests:\n- update/modify the summary\n- add or replace summary content\n- phrases like “make this the new summary”\n\nSet: \"update_summary\": true and include the full updated summary in \"output\".\n\n❌ If the user is just chatting (e.g., “thanks” or asking a question):\nSet: \"update_summary\": false and reply politely in \"output\".\n\n⚠️ Never escape JSON. Never wrap the response in a string. Do not include explanations.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        560,
+        80
+      ],
+      "id": "7b8bb533-818f-4879-909c-c55133768807",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        520,
+        320
+      ],
+      "id": "c1a8b3c9-8935-49d7-a574-af3326dfb6f0",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "7CIt42W14b1MCgxQ",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -360,
+        160
+      ],
+      "id": "c13b0497-c2d8-4587-9f38-09597b77c599",
+      "name": "When chat message received",
+      "webhookId": "d1017c18-47b6-46b8-b490-1c8a463d647a"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.fileId }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "875a4f07-c10a-4674-abc2-16a278215411"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f51259c4-3680-412d-93f9-ba33b29ee8a4",
+                    "leftValue": "={{ $json.message || edit_instruction }} ",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -160,
+        60
+      ],
+      "id": "9db51d1f-4b25-4f61-bd76-0d34de18d2fa",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories_meeting",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories_meeting"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -120,
+        -300
+      ],
+      "id": "6a71b1ac-9bc0-4332-99bf-0bcdc824bef3",
+      "name": "Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "GLg3yAun9TM3Jj3i",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.session_id }} &&",
+        "tableName": "n8n_chat_histories_meeting"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        680,
+        460
+      ],
+      "id": "4f7ec0cc-5dd6-4377-ad23-6d419c296bfe",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "GLg3yAun9TM3Jj3i",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        780,
+        260
+      ],
+      "id": "0fede4d8-9439-43a8-bac7-97a07f2f8c00",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"update_summary\": {\n      \"type\": \"boolean\"\n    },\n    \"output\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\"update_summary\", \"output\"]\n}\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        460
+      ],
+      "id": "1a4b746c-41c1-41f7-be45-3d7c384f3829",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Google Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b53a610a-f88e-4157-9557-1de8f78428ca",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "9sCdz0iKyaivsqdB",
+  "tags": []
+}

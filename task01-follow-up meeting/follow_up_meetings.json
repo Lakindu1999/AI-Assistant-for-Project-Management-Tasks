@@ -1,0 +1,470 @@
+{
+  "name": "follow-up-meetings",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "load-transcripts",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        -300
+      ],
+      "id": "cf760de9-ea6c-4368-8262-8f8e295d2fa0",
+      "name": "Webhook (Load Transcripts)",
+      "webhookId": "690573d4-fc8a-43b8-91ea-5223b4d279fe"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO",
+            "mode": "list",
+            "cachedResultName": "Meeting-transcripts",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1Y9e3DFxG-AsiShcGZ998RnabzyJOkPcO"
+          }
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        -300
+      ],
+      "id": "83c99910-fb6f-4494-982f-e00e4883807f",
+      "name": "Google Drive (List Files)",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "SUFd5I29FYSRnvmn",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        -300
+      ],
+      "id": "09cbe4c9-7504-4b34-8356-bb22a0c7858a",
+      "name": "Respond to Webhook (Display Files)"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.body.fileId }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf",
+              "slidesToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        -80
+      ],
+      "id": "56968886-9413-4581-b2eb-de2999aa35c0",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "SUFd5I29FYSRnvmn",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -80
+      ],
+      "id": "746de1b4-1ed9-4d15-904b-002f9b4b4998",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-r1:14b",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        760,
+        280
+      ],
+      "id": "481ff4b0-7681-44da-be6d-c7dc1c29b804",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "rBf8Fozdn9CiBtwy",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=%meeting-transcript% =  {{ $json.text }}\n\nYou are an AI assistant responsible for analyzing %meeting-transcript% and extracting follow-up meeting details to create calendar events.\n\nfollow these steps:\n1. Identify if a follow-up meeting is mentioned in the %meeting-transcript%.\n2. Extract the following details:\n   - **Title:** Name of the follow-up meeting (default: \"Follow-Up Meeting\" if not explicitly mentioned).\n   - **Start Time:** The scheduled start time for upcoming follow-up meeting (extract from %meeting-transcript%; if missing, return `null`).\n   - **End Time:** If explicitly mentioned, use the provided time; otherwise, set default duration to 30 minutes after the start time.\n   - **Location:** Extract if available; otherwise, assume \"Online.\"\n   - **Description:** Agenda for upcoming follow-up meeting. Agenda should include all important points of upcoming follow-up meeting).\n   - **Attendees:** Extract all names of the participants from the %meeting-transcript%.\n\n3. If no follow-up meeting is mentioned, return an empty response.\n\n\nPlease use the information from the provided %meeting-transcript%.\n\ntime now = {{ $now }}",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        760,
+        -80
+      ],
+      "id": "0e2cf70e-d65b-418d-8861-98250b15ec9a",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"Follow-Up Meeting Details\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"meeting_title\": { \"$ref\": \"#/definitions/meetingTitle\" },\n    \"start_time\": { \"$ref\": \"#/definitions/startTime\" },\n    \"end_time\": { \"$ref\": \"#/definitions/endTime\" },\n    \"location\": { \"$ref\": \"#/definitions/location\" },\n    \"agenda\": { \"$ref\": \"#/definitions/agenda\" },\n    \"attendees\": { \"$ref\": \"#/definitions/attendees\" }\n  },\n  \"required\": [\"meeting_title\", \"start_time\", \"end_time\", \"location\", \"agenda\", \"attendees\"],\n  \"definitions\": {\n    \"meetingTitle\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Meeting Title\",\n      \"type\": \"string\"\n    },\n    \"startTime\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Start Time\",\n      \"type\": \"string\",\n      \"format\": \"date-time\"\n    },\n    \"endTime\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"End Time\",\n      \"type\": \"string\",\n      \"format\": \"date-time\"\n    },\n    \"location\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Location\",\n      \"type\": \"string\"\n    },\n    \"agenda\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Agenda\",\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/definitions/agendaItem\"\n      }\n    },\n    \"agendaItem\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Agenda Item\",\n      \"type\": \"string\"\n    },\n    \"attendees\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Attendees\",\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/definitions/attendee\"\n      }\n    },\n    \"attendee\": {\n      \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n      \"title\": \"Attendee\",\n      \"type\": \"string\"\n    }\n  }\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        260
+      ],
+      "id": "0ff13f40-a38a-430c-843a-49666bea582c",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "download-transcript",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        -80
+      ],
+      "id": "dc74d485-b6a9-4c40-9def-1896bff8e572",
+      "name": "Webhook",
+      "webhookId": "eacc66fd-dc29-408e-97aa-394488d3f674"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        860,
+        60
+      ],
+      "id": "b252711d-aa1a-48f2-864a-ca23869142d8",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1180,
+        -80
+      ],
+      "id": "8dc29055-af1e-4710-b88c-7de389fe1b9c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "update-transcript",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        560
+      ],
+      "id": "cf4ba7f1-98f9-4f65-a9bc-caad3b4d7f1a",
+      "name": "Webhook1",
+      "webhookId": "7e1f2fbf-a938-4693-9446-53206b064513"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "lakithegreat99@gmail.com",
+          "mode": "list",
+          "cachedResultName": "lakithegreat99@gmail.com"
+        },
+        "start": "={{ $('Webhook1').item.json.body.start_time }}",
+        "end": "={{ $('Webhook1').item.json.body.end_time }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $json.attendees }}"
+          ],
+          "description": "={{ $('Webhook1').item.json.body.agenda }}",
+          "location": "={{ $('Webhook1').item.json.body.location }}",
+          "summary": "={{ $('Webhook1').item.json.body.meeting_title }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        560
+      ],
+      "id": "280a4c9f-32cc-43b3-8df4-1290416ceac1",
+      "name": "Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "5IC2syzHn9KvZUMG",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get attendees list from Webhook body\nconst attendees = $('Webhook1').first().json.body.attendees || [];  // List of participant names or emails\n\n// Get name-email mapping from the Set Node\nconst emailData = $node[\"Set\"].json;  // Name-email mapping as an object\n\n// Helper function to check if a string is a valid email\nconst isEmail = (str) => /^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$/.test(str);\n\n// Map attendee names to emails, or use the email directly if the value is already an email\nconst emails = attendees.map((nameOrEmail) => {\n  if (isEmail(nameOrEmail)) {\n    return nameOrEmail;  // Directly use the email if it's valid\n  }\n  return emailData[nameOrEmail] || null;  // Use Set Node to map name to email\n}).filter(email => email !== null);  // Filter out any null values\n\n// Join the emails into a comma-separated string\nconst emailString = emails.join(',');\n\n// Return the comma-separated email string in the object format\nreturn {\n  json: {\n    attendees: emailString\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        560
+      ],
+      "id": "8baa2965-426e-4a5b-8ce8-725312ce7ca1",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"Alex Johnson\": \"alex.johnson@example.com\",\n  \"Sarah Lee\": \"sarah.lee@example.com\",\n  \"Michael Smith\": \"michael.smith@example.com\",\n  \"Emily Davis\": \"emily.davis@example.com\",\n  \"Robert Brown\": \"robert.brown@example.com\",\n  \"David Wilson\": \"david.wilson@example.com\",\n  \"Sophia Martinez\": \"sophia.martinez@example.com\",\n  \"James Anderson\": \"james.anderson@example.com\",\n  \"Olivia Taylor\": \"olivia.taylor@example.com\",\n  \"William Thomas\": \"william.thomas@example.com\",\n  \"Charlotte White\": \"charlotte.white@example.com\",\n  \"Benjamin Harris\": \"benjamin.harris@example.com\",\n  \"Amelia Clark\": \"amelia.clark@example.com\",\n  \"Daniel Lewis\": \"daniel.lewis@example.com\",\n  \"Emma Walker\": \"emma.walker@example.com\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        560
+      ],
+      "id": "921d1104-c3a3-4497-91cd-e0ad83b6ed31",
+      "name": "Set"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        860,
+        560
+      ],
+      "id": "25f20734-aafc-4d12-b86b-16e371d9ef94",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Load Transcripts)": {
+      "main": [
+        [
+          {
+            "node": "Google Drive (List Files)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive (List Files)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook (Display Files)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook (Display Files)": {
+      "main": [
+        []
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ebce215c-a651-459f-bfb7-16b43c224b0c",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "UaC74ELjtL1ngMuX",
+  "tags": []
+}

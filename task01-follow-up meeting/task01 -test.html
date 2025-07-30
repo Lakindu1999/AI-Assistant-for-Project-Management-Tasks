@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Transcript</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
+
+    <div class="bg-white text-center text-xl font-bold px-8 py-4 rounded-2xl shadow-lg mb-8">
+        Select a Transcript
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg">
+        <ul id="transcriptList" class="space-y-4"></ul>
+    </div>
+
+    <div id="responseContainer" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg mt-6"></div>
+    
+    <!-- New Section for Calendar Event Summary -->
+    <div id="calendarEventSummary" class="hidden bg-green-100 p-4 rounded-xl mt-6 w-full max-w-lg text-center"></div>
+
+    <!-- Home Button -->
+    <div class="mt-6">
+        <button onclick="goHome()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+            Go to Home
+        </button>
+    </div>
+
+    <script>
+        async function loadTranscripts() {
+            try {
+                const response = await fetch('http://localhost:5678/webhook-test/load-transcripts'); // Webhook URL
+                const files = await response.json();
+                
+                const listContainer = document.getElementById("transcriptList");
+                listContainer.innerHTML = "";
+                
+                files.forEach(file => {
+                    let listItem = document.createElement("li");
+                    listItem.className = "flex justify-between items-center bg-blue-100 p-4 rounded-xl shadow-md hover:bg-blue-200 cursor-pointer transition";
+                    
+                    let fileName = document.createElement("span");
+                    fileName.textContent = file.name;
+                    
+                    let downloadButton = document.createElement("button");
+                    downloadButton.textContent = "Download";
+                    downloadButton.className = "bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition";
+                    downloadButton.onclick = () => confirmDownload(file.id, file.name, downloadButton);
+                    
+                    listItem.appendChild(fileName);
+                    listItem.appendChild(downloadButton);
+                    listContainer.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error("Error loading transcripts:", error);
+                alert("Failed to load transcripts.");
+            }
+        }
+
+        async function confirmDownload(fileId, fileName, button) {
+            if (confirm(`Do you want to download "${fileName}"?`)) {
+                button.disabled = true; // Disable the download button
+                downloadFile(fileId);
+            }
+        }
+
+        async function downloadFile(fileId) {
+            try {
+                const response = await fetch('http://localhost:5678/webhook-test/download-transcript', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fileId })
+                });
+
+                if (response.ok) {
+                    const jsonResponse = await response.json();
+                    console.log("AI Response:", jsonResponse); // Debugging
+
+                    if (Array.isArray(jsonResponse) && jsonResponse.length > 0 && jsonResponse[0].output) {
+                        displayResponseForm(jsonResponse[0].output);
+                    } else {
+                        alert("Unexpected response format from AI agent!");
+                    }
+                } else {
+                    alert("Download failed!");
+                }
+            } catch (error) {
+                console.error("Error downloading transcript:", error);
+                alert("Error processing the download.");
+            }
+        }
+
+        function displayResponseForm(output) {
+            const formContainer = document.getElementById("responseContainer");
+            formContainer.innerHTML = `
+                <h2 class="text-xl font-bold mb-4">Edit Transcript Details</h2>
+                
+                <label class="block mb-2">Meeting Title:</label>
+                <input type="text" id="meeting_title" value="${output.meeting_title}" class="w-full p-2 border rounded mb-4">
+                
+                <label class="block mb-2">Start Time:</label>
+                <input type="datetime-local" id="start_time" value="${output.start_time}" class="w-full p-2 border rounded mb-4">
+                
+                <label class="block mb-2">End Time:</label>
+                <input type="datetime-local" id="end_time" value="${output.end_time}" class="w-full p-2 border rounded mb-4">
+                
+                <label class="block mb-2">Location:</label>
+                <input type="text" id="location" value="${output.location}" class="w-full p-2 border rounded mb-4">
+                
+                <label class="block mb-2">Agenda:</label>
+                <textarea id="agenda" class="w-full p-2 border rounded mb-4">${output.agenda}</textarea>
+                
+                <label class="block mb-2">Attendees (comma-separated):</label>
+                <input type="text" id="attendees" value="${output.attendees.join(', ')}" class="w-full p-2 border rounded mb-4">
+                
+                <button onclick="sendUpdate()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Send Update</button>
+            `;
+
+            formContainer.classList.remove("hidden"); // Show the form
+        }
+
+        async function sendUpdate() {
+            const updatedData = {
+                meeting_title: document.getElementById("meeting_title").value,
+                start_time: document.getElementById("start_time").value,
+                end_time: document.getElementById("end_time").value,
+                location: document.getElementById("location").value,
+                agenda: document.getElementById("agenda").value,
+                attendees: document.getElementById("attendees").value.split(",").map(name => name.trim())
+            };
+
+            try {
+                const response = await fetch('http://localhost:5678/webhook-test/update-transcript', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (response.ok) {
+                    const jsonResponse = await response.json();
+                    displayCalendarEventSummary(jsonResponse[0]);
+                } else {
+                    alert("Failed to update transcript.");
+                }
+            } catch (error) {
+                console.error("Error updating transcript:", error);
+                alert("Error sending the update.");
+            }
+        }
+
+        function displayCalendarEventSummary(event) {
+            // Clear the form and transcript list
+            document.getElementById("responseContainer").innerHTML = "";
+            document.getElementById("transcriptList").innerHTML = "";
+            
+            // Show the calendar event summary
+            const summaryContainer = document.getElementById("calendarEventSummary");
+            summaryContainer.innerHTML = `
+                <h3 class="text-lg font-bold">Calendar Event Summary:</h3>
+                <p><strong>Title:</strong> ${event.summary}</p>
+                <p><strong>Description:</strong> ${event.description}</p>
+                <p><strong>Location:</strong> ${event.location}</p>
+                <p><strong>Start Time:</strong> ${new Date(event.start.dateTime).toLocaleString()}</p>
+                <p><strong>End Time:</strong> ${new Date(event.end.dateTime).toLocaleString()}</p>
+                <p><strong>Attendees:</strong> ${event.attendees.map(attendee => attendee.email).join(', ')}</p>
+            `;
+            summaryContainer.classList.remove("hidden");
+        }
+
+        function goHome() {
+            window.location.href = "index.html"; // Redirect to index page
+        }
+
+        window.onload = loadTranscripts;
+    </script>
+</body>
+</html>
